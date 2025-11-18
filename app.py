@@ -249,12 +249,20 @@ def estimate_u_value(
 # STREAMLIT UI
 st.set_page_config(page_title="NanaWall U-Value Estimator", layout="wide")
 
-st.title("NanaWall U-Value Estimator for Cero")
-st.markdown("""
-This tool estimates assembly U-values for aluminum-framed glazed door systems.
-The calculation uses area-weighted glass/edge/frame contributions and is calibrated
-to match NFRC reference values.
-""")
+# BRANDING - LOGO IN TOP RIGHT CORNER
+col_title, col_logo = st.columns([4, 1])
+with col_title:
+    st.title("NanaWall U-Value Estimator for Cero")
+    st.markdown("""
+    This tool estimates assembly U-values for aluminum-framed glazed door systems.
+    The calculation uses area-weighted glass/edge/frame contributions and is calibrated
+    to match NFRC reference values.
+    """)
+with col_logo:
+    try:
+        st.image("image.png", width=150)
+    except:
+        pass  # IF IMAGE NOT FOUND, CONTINUE WITHOUT IT
 
 col1, col2 = st.columns(2)
 
