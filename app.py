@@ -286,21 +286,16 @@ with col2:
     st.header("Frame Recess")
     recess_fraction = st.slider("Recess Fraction", 0.0, 1.0, 0.0, 0.1,
                                 help="0.0 = no recess, 1.0 = fully recessed")
-    recess_effectiveness = st.slider("Recess Effectiveness", 0.0, 1.0, 0.6, 0.1,
-                                     help="How strongly recess lowers frame U-value")
 
-# ADVANCED SETTINGS
-with st.expander("Advanced Settings (NFRC Reference Data)"):
-    col3, col4 = st.columns(2)
-    with col3:
-        ref_u_unit = st.selectbox("Reference U-Value Unit", ["BTU", "W"], index=0)
-        ref_glass_u1 = st.number_input("Reference Glass U1", value=0.25, step=0.01)
-        ref_total_u1 = st.number_input("Reference Total U1", value=0.41, step=0.01)
-    with col4:
-        ref_glass_u2 = st.number_input("Reference Glass U2", value=0.30, step=0.01)
-        ref_total_u2 = st.number_input("Reference Total U2", value=0.46, step=0.01)
+# INITIALIZE ADVANCED PARAMETERS WITH DEFAULTS
+recess_effectiveness = 0.6  # DEFAULT VALUE, CAN BE OVERRIDDEN IN ADVANCED SETTINGS
+ref_u_unit = "BTU"
+ref_glass_u1 = 0.25
+ref_total_u1 = 0.41
+ref_glass_u2 = 0.30
+ref_total_u2 = 0.46
 
-# CALCULATE
+# CALCULATE BUTTON
 if st.button("Calculate U-Value", type="primary"):
     try:
         result = estimate_u_value(
@@ -343,4 +338,40 @@ if st.button("Calculate U-Value", type="primary"):
     except Exception as e:
         st.error(f"Error: {str(e)}")
         st.exception(e)
+
+# ADVANCED SETTINGS
+with st.expander("Advanced Settings (NFRC Reference Data)"):
+    col3, col4 = st.columns(2)
+    with col3:
+        ref_u_unit = st.selectbox("Reference U-Value Unit", ["BTU", "W"], index=0)
+        ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1, step=0.01)
+        ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1, step=0.01)
+    with col4:
+        ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2, step=0.01)
+        ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2, step=0.01)
+    
+    st.markdown("---")
+    recess_effectiveness = st.slider("Recess Effectiveness", 0.0, 1.0, recess_effectiveness, 0.1,
+                                     help="How strongly recess lowers frame U-value")
+
+# DOCUMENTATION SECTION
+with st.expander("Calculation Methodology & Parameters", expanded=False):
+    st.markdown("""
+    **Calculation Method:** The tool uses an area-weighted approach: `U_total = (A_glass × U_glass + A_edge × U_edge + A_frame × U_frame) / A_total`
+    
+    **Based on Ground Truth:**
+    - Calibrated to NFRC reference data (2 m × 2 m door: 0.25 BTU glass → 0.41 BTU total, 0.30 BTU glass → 0.46 BTU total)
+    - Glass U-value input from manufacturer specifications
+    - Frame and edge U-values are back-calculated from these reference cases
+    
+    **Estimated/Empirical:**
+    - Frame width: Estimated as `0.015 × √(perimeter)`, constrained to 40-100 mm
+    - Edge zone: Estimated as `0.010 × √(perimeter)`, constrained to 30-80 mm
+    - Size scaling: Larger units perform better via `exp(-0.06 × (size_factor - 1.0))`
+    - Aspect ratio: Non-square doors penalized by `1.0 + 0.02 × |aspect_ratio - 1.0|`
+    - Recess effectiveness: Default 0.6 (60% reduction when fully recessed) is estimated
+    - Multi-panel: Width scaled by `2/panels` to approximate 2-panel equivalent (simplified, doesn't model mullions)
+    
+    **Limitations:** This is a simplified model, not a THERM analysis. Use for estimates and comparisons, not final code compliance submissions.
+    """)
 
