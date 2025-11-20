@@ -127,7 +127,7 @@ def estimate_u_value(
     size_unit: "mm", "m", "ft", "in"
     glass_u: glazing U-value (center-of-glass)
     glass_u_unit: "BTU" or "W"
-    panels: number of panels (if > 2, scales dimensions by 2/panels to get 2-panel equivalent)
+    panels: number of panels (if > 2, scales width only by 2/panels to get 2-panel equivalent)
     ref_glass_u1, ref_total_u1: NFRC reference for ~2m x 2m door, better glass
     ref_glass_u2, ref_total_u2: NFRC reference for ~2m x 2m door, worse glass
     ref_u_unit: unit for the reference U-values ("BTU" or "W")
@@ -143,11 +143,11 @@ def estimate_u_value(
     """
 
     # ---- 0. SCALE FOR MULTI-PANEL SYSTEMS ----
-    # IF MORE THAN 2 PANELS, SCALE DIMENSIONS TO 2-PANEL EQUIVALENT
+    # IF MORE THAN 2 PANELS, SCALE WIDTH ONLY TO 2-PANEL EQUIVALENT
     if panels > 2:
         scale_factor = 2.0 / panels
         width = width * scale_factor
-        height = height * scale_factor
+        # HEIGHT REMAINS UNCHANGED
 
     # ---- 1. Convert sizes ----
     width_mm = length_to_mm(width, size_unit)
@@ -276,9 +276,8 @@ with col1:
     if panels > 2:
         scale_factor = 2.0 / panels
         scaled_width = width * scale_factor
-        scaled_height = height * scale_factor
-        st.info(f"⚠️ Multi-panel system: Scaling to 2-panel equivalent\n"
-                f"Scaled dimensions: {scaled_width:.2f} × {scaled_height:.2f} {size_unit}")
+        st.info(f"⚠️ Multi-panel system: Scaling width to 2-panel equivalent\n"
+                f"Scaled width: {scaled_width:.2f} {size_unit} (height unchanged: {height:.2f} {size_unit})")
 
 with col2:
     st.header("Glass Properties")
