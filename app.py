@@ -420,17 +420,22 @@ with col2:
         "Preset Configuration",
         options=preset_options,
         index=current_index,
-        help="Select a preset for reference glass U-values. Changes to 'Custom' if advanced settings are modified."
+        help="Select a preset for reference glass U-values."
     )
     
-    # UPDATE SESSION STATE WHEN PRESET CHANGES (USER SELECTED A PRESET)
-    if preset_selection != st.session_state.preset_selection_prev and preset_selection != "Custom":
-        selected_preset = PRESETS[preset_selection]
-        st.session_state.ref_glass_u1_metric = u_to_metric(selected_preset["ref_glass_u1"], "BTU")
-        st.session_state.ref_total_u1_metric = u_to_metric(selected_preset["ref_total_u1"], "BTU")
-        st.session_state.ref_glass_u2_metric = u_to_metric(selected_preset["ref_glass_u2"], "BTU")
-        st.session_state.ref_total_u2_metric = u_to_metric(selected_preset["ref_total_u2"], "BTU")
-        st.session_state.current_preset = preset_selection
+    # UPDATE SESSION STATE WHEN PRESET CHANGES
+    if preset_selection != st.session_state.preset_selection_prev:
+        if preset_selection == "Custom":
+            # USER SELECTED CUSTOM - JUST UPDATE THE CURRENT PRESET
+            st.session_state.current_preset = "Custom"
+        else:
+            # USER SELECTED A PRESET - UPDATE VALUES
+            selected_preset = PRESETS[preset_selection]
+            st.session_state.ref_glass_u1_metric = u_to_metric(selected_preset["ref_glass_u1"], "BTU")
+            st.session_state.ref_total_u1_metric = u_to_metric(selected_preset["ref_total_u1"], "BTU")
+            st.session_state.ref_glass_u2_metric = u_to_metric(selected_preset["ref_glass_u2"], "BTU")
+            st.session_state.ref_total_u2_metric = u_to_metric(selected_preset["ref_total_u2"], "BTU")
+            st.session_state.current_preset = preset_selection
         st.session_state.preset_selection_prev = preset_selection
     
     recess_fraction = st.slider("Recess Fraction", 0.0, 1.0, 0.0, 0.1,
