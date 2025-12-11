@@ -337,7 +337,8 @@ with col1:
     if size_unit != st.session_state.size_unit_prev:
         st.session_state.size_unit_prev = size_unit
     
-    width = st.number_input("Width", min_value=0.1, value=width_display, step=0.1, key="width_input")
+    # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
+    width = st.number_input("Width", min_value=0.1, value=width_display, step=0.1, key=f"width_input_{size_unit}")
     # UPDATE STORED VALUE WHEN USER CHANGES INPUT
     st.session_state.width_mm = length_to_mm(width, size_unit)
     
@@ -352,7 +353,7 @@ with col1:
         max_value=max_height_display,
         value=height_display, 
         step=0.1,
-        key="height_input",
+        key=f"height_input_{size_unit}",
         help=f"Maximum height: {max_height_display:.2f} {size_unit} (6m / 19ft 8in)"
     )
     # UPDATE STORED VALUE WHEN USER CHANGES INPUT
@@ -385,7 +386,8 @@ with col2:
     if glass_u_unit != st.session_state.glass_u_unit_prev:
         st.session_state.glass_u_unit_prev = glass_u_unit
     
-    glass_u = st.number_input("Glass U-Value (Center-of-Glass)", min_value=0.01, value=glass_u_display, step=0.01, key="glass_u_input")
+    # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
+    glass_u = st.number_input("Glass U-Value (Center-of-Glass)", min_value=0.01, value=glass_u_display, step=0.01, key=f"glass_u_input_{glass_u_unit}")
     # UPDATE STORED VALUE WHEN USER CHANGES INPUT
     st.session_state.glass_u_metric = u_to_metric(glass_u, glass_u_unit)
     
@@ -478,11 +480,12 @@ with st.expander("Advanced Settings (NFRC Reference Data)"):
         ref_glass_u1_display = u_to_btu(st.session_state.ref_glass_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u1_metric
         ref_total_u1_display = u_to_btu(st.session_state.ref_total_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u1_metric
         
-        ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1_display, step=0.01, key="ref_glass_u1_input")
+        # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
+        ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1_display, step=0.01, key=f"ref_glass_u1_input_{ref_u_unit}")
         # UPDATE STORED VALUE WHEN USER CHANGES INPUT
         st.session_state.ref_glass_u1_metric = u_to_metric(ref_glass_u1, ref_u_unit)
         
-        ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1_display, step=0.01, key="ref_total_u1_input")
+        ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1_display, step=0.01, key=f"ref_total_u1_input_{ref_u_unit}")
         # UPDATE STORED VALUE WHEN USER CHANGES INPUT
         st.session_state.ref_total_u1_metric = u_to_metric(ref_total_u1, ref_u_unit)
         
@@ -491,11 +494,12 @@ with st.expander("Advanced Settings (NFRC Reference Data)"):
         ref_glass_u2_display = u_to_btu(st.session_state.ref_glass_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u2_metric
         ref_total_u2_display = u_to_btu(st.session_state.ref_total_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u2_metric
         
-        ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2_display, step=0.01, key="ref_glass_u2_input")
+        # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
+        ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2_display, step=0.01, key=f"ref_glass_u2_input_{ref_u_unit}")
         # UPDATE STORED VALUE WHEN USER CHANGES INPUT
         st.session_state.ref_glass_u2_metric = u_to_metric(ref_glass_u2, ref_u_unit)
         
-        ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2_display, step=0.01, key="ref_total_u2_input")
+        ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2_display, step=0.01, key=f"ref_total_u2_input_{ref_u_unit}")
         # UPDATE STORED VALUE WHEN USER CHANGES INPUT
         st.session_state.ref_total_u2_metric = u_to_metric(ref_total_u2, ref_u_unit)
     
