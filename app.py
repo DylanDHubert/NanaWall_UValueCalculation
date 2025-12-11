@@ -277,6 +277,24 @@ PRESETS = {
     },
 }
 
+def check_preset_match(ref_glass_u1_metric, ref_total_u1_metric, ref_glass_u2_metric, ref_total_u2_metric, tolerance=0.001):
+    """
+    CHECK IF CURRENT VALUES MATCH ANY PRESET (COMPARING IN METRIC TO AVOID UNIT ISSUES).
+    RETURNS PRESET NAME IF MATCH FOUND, "Custom" OTHERWISE.
+    """
+    for preset_name, preset_values in PRESETS.items():
+        preset_u1_metric = u_to_metric(preset_values["ref_glass_u1"], "BTU")
+        preset_total1_metric = u_to_metric(preset_values["ref_total_u1"], "BTU")
+        preset_u2_metric = u_to_metric(preset_values["ref_glass_u2"], "BTU")
+        preset_total2_metric = u_to_metric(preset_values["ref_total_u2"], "BTU")
+        
+        if (abs(ref_glass_u1_metric - preset_u1_metric) < tolerance and
+            abs(ref_total_u1_metric - preset_total1_metric) < tolerance and
+            abs(ref_glass_u2_metric - preset_u2_metric) < tolerance and
+            abs(ref_total_u2_metric - preset_total2_metric) < tolerance):
+            return preset_name
+    return "Custom"
+
 # STREAMLIT UI
 st.set_page_config(page_title="U-Value Estimator", layout="wide")
 
@@ -292,21 +310,23 @@ if "size_unit_prev" not in st.session_state:
     st.session_state.size_unit_prev = "ft"
 if "glass_u_unit_prev" not in st.session_state:
     st.session_state.glass_u_unit_prev = "BTU"
-# REFERENCE U-VALUES (STORED IN METRIC)
+# REFERENCE U-VALUES (STORED IN METRIC) - INITIALIZE TO CERO2 PRESET
 if "ref_glass_u1_metric" not in st.session_state:
-    st.session_state.ref_glass_u1_metric = u_to_metric(0.25, "BTU")  # DEFAULT FROM PRESET
+    st.session_state.ref_glass_u1_metric = u_to_metric(PRESETS["Cero2"]["ref_glass_u1"], "BTU")
 if "ref_total_u1_metric" not in st.session_state:
-    st.session_state.ref_total_u1_metric = u_to_metric(0.41, "BTU")
+    st.session_state.ref_total_u1_metric = u_to_metric(PRESETS["Cero2"]["ref_total_u1"], "BTU")
 if "ref_glass_u2_metric" not in st.session_state:
-    st.session_state.ref_glass_u2_metric = u_to_metric(0.30, "BTU")
+    st.session_state.ref_glass_u2_metric = u_to_metric(PRESETS["Cero2"]["ref_glass_u2"], "BTU")
 if "ref_total_u2_metric" not in st.session_state:
-    st.session_state.ref_total_u2_metric = u_to_metric(0.46, "BTU")
+    st.session_state.ref_total_u2_metric = u_to_metric(PRESETS["Cero2"]["ref_total_u2"], "BTU")
 if "ref_u_unit_prev" not in st.session_state:
     st.session_state.ref_u_unit_prev = "BTU"
 if "ref_u_unit" not in st.session_state:
     st.session_state.ref_u_unit = "BTU"
 if "preset_selection_prev" not in st.session_state:
-    st.session_state.preset_selection_prev = None
+    st.session_state.preset_selection_prev = "Cero2"  # DEFAULT PRESET
+if "current_preset" not in st.session_state:
+    st.session_state.current_preset = "Cero2"  # DEFAULT PRESET
 
 # BRANDING - LOGO IN TOP RIGHT CORNER
 col_title, col_logo = st.columns([4, 1])
@@ -392,20 +412,25 @@ with col2:
     st.session_state.glass_u_metric = u_to_metric(glass_u, glass_u_unit)
     
     # PRESET SELECTOR (REPLACES FRAME RECESS HEADER)
+    preset_options = list(PRESETS.keys()) + ["Custom"]
+    # FIND CURRENT INDEX BASED ON SESSION STATE
+    current_index = preset_options.index(st.session_state.current_preset) if st.session_state.current_preset in preset_options else len(preset_options) - 1
+    
     preset_selection = st.selectbox(
         "Preset Configuration",
-        options=list(PRESETS.keys()),
-        index=0,
-        help="Select a preset for reference glass U-values."
+        options=preset_options,
+        index=current_index,
+        help="Select a preset for reference glass U-values. Changes to 'Custom' if advanced settings are modified."
     )
     
-    # UPDATE SESSION STATE WHEN PRESET CHANGES
-    if preset_selection != st.session_state.preset_selection_prev:
+    # UPDATE SESSION STATE WHEN PRESET CHANGES (USER SELECTED A PRESET)
+    if preset_selection != st.session_state.preset_selection_prev and preset_selection != "Custom":
         selected_preset = PRESETS[preset_selection]
         st.session_state.ref_glass_u1_metric = u_to_metric(selected_preset["ref_glass_u1"], "BTU")
         st.session_state.ref_total_u1_metric = u_to_metric(selected_preset["ref_total_u1"], "BTU")
         st.session_state.ref_glass_u2_metric = u_to_metric(selected_preset["ref_glass_u2"], "BTU")
         st.session_state.ref_total_u2_metric = u_to_metric(selected_preset["ref_total_u2"], "BTU")
+        st.session_state.current_preset = preset_selection
         st.session_state.preset_selection_prev = preset_selection
     
     recess_fraction = st.slider("Recess Fraction", 0.0, 1.0, 0.0, 0.1,
@@ -502,6 +527,15 @@ with st.expander("Advanced Settings (NFRC Reference Data)"):
         ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2_display, step=0.01, key=f"ref_total_u2_input_{ref_u_unit}")
         # UPDATE STORED VALUE WHEN USER CHANGES INPUT
         st.session_state.ref_total_u2_metric = u_to_metric(ref_total_u2, ref_u_unit)
+    
+    # CHECK IF CURRENT VALUES MATCH ANY PRESET AND UPDATE PRESET SELECTION
+    matched_preset = check_preset_match(
+        st.session_state.ref_glass_u1_metric,
+        st.session_state.ref_total_u1_metric,
+        st.session_state.ref_glass_u2_metric,
+        st.session_state.ref_total_u2_metric
+    )
+    st.session_state.current_preset = matched_preset
     
     st.markdown("---")
     recess_effectiveness = st.slider("Recess Effectiveness", 0.0, 1.0, recess_effectiveness, 0.1,
