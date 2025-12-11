@@ -38,6 +38,22 @@ def length_to_mm(value: float, unit: str) -> float:
         return value * 25.4
     raise ValueError(f"Unsupported length unit: {unit}")
 
+def mm_to_length(value_mm: float, unit: str) -> float:
+    """
+    Convert a length from mm to specified unit.
+    unit: "mm", "m", "ft", "in"
+    """
+    unit = unit.lower()
+    if unit == "mm":
+        return value_mm
+    if unit == "m":
+        return value_mm / 1000.0
+    if unit == "ft":
+        return value_mm / 304.8
+    if unit == "in":
+        return value_mm / 25.4
+    raise ValueError(f"Unsupported length unit: {unit}")
+
 def u_to_metric(u_value: float, unit: str) -> float:
     """
     Convert U-value to W/m²K.
@@ -269,8 +285,31 @@ with col1:
     st.header("Dimensions")
     size_unit = st.selectbox("Size Unit", ["ft", "m", "mm", "in"], index=0)
     width = st.number_input("Width", min_value=0.1, value=12.0, step=0.1)
-    height = st.number_input("Height", min_value=0.1, value=24.0, step=0.1)
+    
+    # MAX HEIGHT: 6M (19FT 8IN)
+    max_height_mm = 6000.0  # 6M = 19FT 8IN
+    max_height_display = mm_to_length(max_height_mm, size_unit)
+    height = st.number_input(
+        "Height", 
+        min_value=0.1, 
+        max_value=max_height_display,
+        value=9.0, 
+        step=0.1,
+        help=f"Maximum height: {max_height_display:.2f} {size_unit} (6m / 19ft 8in)"
+    )
+    
     panels = st.number_input("Number of Panels", min_value=1, value=2, step=1)
+    
+    # WARNING IF PER-PANEL WIDTH > 3M (10FT)
+    width_per_panel = width / panels
+    width_per_panel_mm = length_to_mm(width_per_panel, size_unit)
+    max_per_panel_width_mm = 3000.0  # 3M = 10FT
+    if width_per_panel_mm > max_per_panel_width_mm:
+        max_per_panel_display = mm_to_length(max_per_panel_width_mm, size_unit)
+        st.warning(
+            f"⚠️ Per-panel width ({width_per_panel:.2f} {size_unit}) exceeds maximum "
+            f"recommended width of {max_per_panel_display:.2f} {size_unit} (3m / 10ft)"
+        )
     
     if panels > 2:
         scale_factor = 2.0 / panels
@@ -287,13 +326,39 @@ with col2:
     recess_fraction = st.slider("Recess Fraction", 0.0, 1.0, 0.0, 0.1,
                                 help="0.0 = no recess, 1.0 = fully recessed")
 
-# INITIALIZE ADVANCED PARAMETERS WITH DEFAULTS
+# PRESETS FOR REFERENCE GLASS U-VALUES
+PRESETS = {
+    "Cero2": {
+        "ref_glass_u1": 0.25,
+        "ref_total_u1": 0.41,
+        "ref_glass_u2": 0.30,
+        "ref_total_u2": 0.46,
+    },
+    "Cero3": {
+        "ref_glass_u1": 0.25,  # PLACEHOLDER - TO BE UPDATED
+        "ref_total_u1": 0.41,  # PLACEHOLDER - TO BE UPDATED
+        "ref_glass_u2": 0.30,  # PLACEHOLDER - TO BE UPDATED
+        "ref_total_u2": 0.46,  # PLACEHOLDER - TO BE UPDATED
+    },
+}
+
+# PRESET SELECTOR
+st.markdown("---")
+preset_selection = st.selectbox(
+    "Preset Configuration",
+    options=list(PRESETS.keys()),
+    index=0,
+    help="Select a preset for reference glass U-values. Cero3 values are placeholders and will be updated."
+)
+
+# INITIALIZE ADVANCED PARAMETERS FROM PRESET
+selected_preset = PRESETS[preset_selection]
 recess_effectiveness = 0.6  # DEFAULT VALUE, CAN BE OVERRIDDEN IN ADVANCED SETTINGS
 ref_u_unit = "BTU"
-ref_glass_u1 = 0.25
-ref_total_u1 = 0.41
-ref_glass_u2 = 0.30
-ref_total_u2 = 0.46
+ref_glass_u1 = selected_preset["ref_glass_u1"]
+ref_total_u1 = selected_preset["ref_total_u1"]
+ref_glass_u2 = selected_preset["ref_glass_u2"]
+ref_total_u2 = selected_preset["ref_total_u2"]
 
 # CALCULATE BUTTON
 if st.button("Calculate U-Value", type="primary"):
