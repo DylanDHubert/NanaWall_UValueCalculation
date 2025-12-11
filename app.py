@@ -437,7 +437,9 @@ with col2:
                                 help="0.0 = no recess, 1.0 = fully recessed")
 
 # INITIALIZE ADVANCED PARAMETERS
-recess_effectiveness = 0.6  # DEFAULT VALUE, CAN BE OVERRIDDEN IN ADVANCED SETTINGS
+if "recess_effectiveness" not in st.session_state:
+    st.session_state.recess_effectiveness = 0.6  # DEFAULT VALUE
+recess_effectiveness = st.session_state.recess_effectiveness
 
 # GET REFERENCE U-VALUES FROM SESSION STATE, CONVERTED TO CURRENT UNIT
 ref_u_unit = st.session_state.ref_u_unit
@@ -490,45 +492,51 @@ if st.button("Calculate U-Value", type="primary"):
         st.error(f"Error: {str(e)}")
         st.exception(e)
 
-# ADVANCED SETTINGS
-with st.expander("Advanced Settings (NFRC Reference Data)"):
-    col3, col4 = st.columns(2)
-    with col3:
-        ref_u_unit = st.selectbox("Reference U-Value Unit", ["BTU", "W"], index=0 if st.session_state.ref_u_unit == "BTU" else 1)
+# ADVANCED SETTINGS - ONLY SHOW WHEN CUSTOM IS SELECTED
+if st.session_state.current_preset == "Custom":
+    with st.expander("Advanced Settings (NFRC Reference Data)", expanded=True):
+        col3, col4 = st.columns(2)
+        with col3:
+            ref_u_unit = st.selectbox("Reference U-Value Unit", ["BTU", "W"], index=0 if st.session_state.ref_u_unit == "BTU" else 1)
+            
+            # UPDATE SESSION STATE WHEN UNIT CHANGES
+            st.session_state.ref_u_unit = ref_u_unit
+            if ref_u_unit != st.session_state.ref_u_unit_prev:
+                st.session_state.ref_u_unit_prev = ref_u_unit
+            
+            # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
+            ref_glass_u1_display = u_to_btu(st.session_state.ref_glass_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u1_metric
+            ref_total_u1_display = u_to_btu(st.session_state.ref_total_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u1_metric
+            
+            # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
+            ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1_display, step=0.01, key=f"ref_glass_u1_input_{ref_u_unit}")
+            # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+            st.session_state.ref_glass_u1_metric = u_to_metric(ref_glass_u1, ref_u_unit)
+            
+            ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1_display, step=0.01, key=f"ref_total_u1_input_{ref_u_unit}")
+            # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+            st.session_state.ref_total_u1_metric = u_to_metric(ref_total_u1, ref_u_unit)
+            
+        with col4:
+            # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
+            ref_glass_u2_display = u_to_btu(st.session_state.ref_glass_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u2_metric
+            ref_total_u2_display = u_to_btu(st.session_state.ref_total_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u2_metric
+            
+            # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
+            ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2_display, step=0.01, key=f"ref_glass_u2_input_{ref_u_unit}")
+            # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+            st.session_state.ref_glass_u2_metric = u_to_metric(ref_glass_u2, ref_u_unit)
+            
+            ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2_display, step=0.01, key=f"ref_total_u2_input_{ref_u_unit}")
+            # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+            st.session_state.ref_total_u2_metric = u_to_metric(ref_total_u2, ref_u_unit)
         
-        # UPDATE SESSION STATE WHEN UNIT CHANGES
-        st.session_state.ref_u_unit = ref_u_unit
-        if ref_u_unit != st.session_state.ref_u_unit_prev:
-            st.session_state.ref_u_unit_prev = ref_u_unit
-        
-        # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
-        ref_glass_u1_display = u_to_btu(st.session_state.ref_glass_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u1_metric
-        ref_total_u1_display = u_to_btu(st.session_state.ref_total_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u1_metric
-        
-        # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
-        ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1_display, step=0.01, key=f"ref_glass_u1_input_{ref_u_unit}")
-        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
-        st.session_state.ref_glass_u1_metric = u_to_metric(ref_glass_u1, ref_u_unit)
-        
-        ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1_display, step=0.01, key=f"ref_total_u1_input_{ref_u_unit}")
-        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
-        st.session_state.ref_total_u1_metric = u_to_metric(ref_total_u1, ref_u_unit)
-        
-    with col4:
-        # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
-        ref_glass_u2_display = u_to_btu(st.session_state.ref_glass_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u2_metric
-        ref_total_u2_display = u_to_btu(st.session_state.ref_total_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u2_metric
-        
-        # USE KEY THAT INCLUDES UNIT SO WIDGET RESETS WHEN UNIT CHANGES
-        ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2_display, step=0.01, key=f"ref_glass_u2_input_{ref_u_unit}")
-        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
-        st.session_state.ref_glass_u2_metric = u_to_metric(ref_glass_u2, ref_u_unit)
-        
-        ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2_display, step=0.01, key=f"ref_total_u2_input_{ref_u_unit}")
-        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
-        st.session_state.ref_total_u2_metric = u_to_metric(ref_total_u2, ref_u_unit)
+        st.markdown("---")
+        recess_effectiveness = st.slider("Recess Effectiveness", 0.0, 1.0, st.session_state.recess_effectiveness, 0.1,
+                                         help="How strongly recess lowers frame U-value")
+        st.session_state.recess_effectiveness = recess_effectiveness
     
-    # CHECK IF CURRENT VALUES MATCH ANY PRESET AND UPDATE PRESET SELECTION
+    # CHECK IF CURRENT VALUES MATCH ANY PRESET AND UPDATE PRESET SELECTION (AFTER ADVANCED SETTINGS UPDATES)
     matched_preset = check_preset_match(
         st.session_state.ref_glass_u1_metric,
         st.session_state.ref_total_u1_metric,
@@ -536,10 +544,9 @@ with st.expander("Advanced Settings (NFRC Reference Data)"):
         st.session_state.ref_total_u2_metric
     )
     st.session_state.current_preset = matched_preset
-    
-    st.markdown("---")
-    recess_effectiveness = st.slider("Recess Effectiveness", 0.0, 1.0, recess_effectiveness, 0.1,
-                                     help="How strongly recess lowers frame U-value")
+else:
+    # WHEN USING A PRESET, USE DEFAULT RECESS EFFECTIVENESS FROM SESSION STATE
+    recess_effectiveness = st.session_state.recess_effectiveness
 
 # DOCUMENTATION SECTION
 with st.expander("Calculation Methodology & Parameters", expanded=False):
