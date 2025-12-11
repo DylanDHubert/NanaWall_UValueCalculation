@@ -280,6 +280,34 @@ PRESETS = {
 # STREAMLIT UI
 st.set_page_config(page_title="NanaWall U-Value Estimator", layout="wide")
 
+# INITIALIZE SESSION STATE FOR UNIT CONVERSION
+# STORE VALUES IN BASE UNITS: mm FOR DIMENSIONS, W/m²K FOR U-VALUES
+if "width_mm" not in st.session_state:
+    st.session_state.width_mm = length_to_mm(12.0, "ft")  # DEFAULT 12FT
+if "height_mm" not in st.session_state:
+    st.session_state.height_mm = length_to_mm(9.0, "ft")  # DEFAULT 9FT
+if "glass_u_metric" not in st.session_state:
+    st.session_state.glass_u_metric = u_to_metric(0.30, "BTU")  # DEFAULT 0.30 BTU
+if "size_unit_prev" not in st.session_state:
+    st.session_state.size_unit_prev = "ft"
+if "glass_u_unit_prev" not in st.session_state:
+    st.session_state.glass_u_unit_prev = "BTU"
+# REFERENCE U-VALUES (STORED IN METRIC)
+if "ref_glass_u1_metric" not in st.session_state:
+    st.session_state.ref_glass_u1_metric = u_to_metric(0.25, "BTU")  # DEFAULT FROM PRESET
+if "ref_total_u1_metric" not in st.session_state:
+    st.session_state.ref_total_u1_metric = u_to_metric(0.41, "BTU")
+if "ref_glass_u2_metric" not in st.session_state:
+    st.session_state.ref_glass_u2_metric = u_to_metric(0.30, "BTU")
+if "ref_total_u2_metric" not in st.session_state:
+    st.session_state.ref_total_u2_metric = u_to_metric(0.46, "BTU")
+if "ref_u_unit_prev" not in st.session_state:
+    st.session_state.ref_u_unit_prev = "BTU"
+if "ref_u_unit" not in st.session_state:
+    st.session_state.ref_u_unit = "BTU"
+if "preset_selection_prev" not in st.session_state:
+    st.session_state.preset_selection_prev = None
+
 # BRANDING - LOGO IN TOP RIGHT CORNER
 col_title, col_logo = st.columns([4, 1])
 with col_title:
@@ -300,19 +328,35 @@ col1, col2 = st.columns(2)
 with col1:
     st.header("Dimensions")
     size_unit = st.selectbox("Size Unit", ["ft", "m", "mm", "in"], index=0)
-    width = st.number_input("Width", min_value=0.1, value=12.0, step=0.1)
+    
+    # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
+    width_display = mm_to_length(st.session_state.width_mm, size_unit)
+    height_display = mm_to_length(st.session_state.height_mm, size_unit)
+    
+    # IF UNIT CHANGED, UPDATE DISPLAY VALUES (BUT DON'T CHANGE STORED VALUES)
+    if size_unit != st.session_state.size_unit_prev:
+        st.session_state.size_unit_prev = size_unit
+    
+    width = st.number_input("Width", min_value=0.1, value=width_display, step=0.1, key="width_input")
+    # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+    st.session_state.width_mm = length_to_mm(width, size_unit)
     
     # MAX HEIGHT: 6M (19FT 8IN)
     max_height_mm = 6000.0  # 6M = 19FT 8IN
     max_height_display = mm_to_length(max_height_mm, size_unit)
+    # CLAMP HEIGHT TO MAX IF NECESSARY
+    height_display = min(height_display, max_height_display * 0.95)
     height = st.number_input(
         "Height", 
         min_value=0.1, 
         max_value=max_height_display,
-        value=9.0, 
+        value=height_display, 
         step=0.1,
+        key="height_input",
         help=f"Maximum height: {max_height_display:.2f} {size_unit} (6m / 19ft 8in)"
     )
+    # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+    st.session_state.height_mm = length_to_mm(height, size_unit)
     
     panels = st.number_input("Number of Panels", min_value=1, value=2, step=1)
     
@@ -333,7 +377,17 @@ with col1:
 with col2:
     st.header("Glass Properties")
     glass_u_unit = st.selectbox("Glass U-Value Unit", ["BTU", "W"], index=0)
-    glass_u = st.number_input("Glass U-Value (Center-of-Glass)", min_value=0.01, value=0.30, step=0.01)
+    
+    # CONVERT STORED VALUE TO CURRENT UNIT FOR DISPLAY
+    glass_u_display = u_to_btu(st.session_state.glass_u_metric) if glass_u_unit == "BTU" else st.session_state.glass_u_metric
+    
+    # IF UNIT CHANGED, UPDATE DISPLAY VALUE (BUT DON'T CHANGE STORED VALUE)
+    if glass_u_unit != st.session_state.glass_u_unit_prev:
+        st.session_state.glass_u_unit_prev = glass_u_unit
+    
+    glass_u = st.number_input("Glass U-Value (Center-of-Glass)", min_value=0.01, value=glass_u_display, step=0.01, key="glass_u_input")
+    # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+    st.session_state.glass_u_metric = u_to_metric(glass_u, glass_u_unit)
     
     # PRESET SELECTOR (REPLACES FRAME RECESS HEADER)
     preset_selection = st.selectbox(
@@ -343,17 +397,27 @@ with col2:
         help="Select a preset for reference glass U-values."
     )
     
+    # UPDATE SESSION STATE WHEN PRESET CHANGES
+    if preset_selection != st.session_state.preset_selection_prev:
+        selected_preset = PRESETS[preset_selection]
+        st.session_state.ref_glass_u1_metric = u_to_metric(selected_preset["ref_glass_u1"], "BTU")
+        st.session_state.ref_total_u1_metric = u_to_metric(selected_preset["ref_total_u1"], "BTU")
+        st.session_state.ref_glass_u2_metric = u_to_metric(selected_preset["ref_glass_u2"], "BTU")
+        st.session_state.ref_total_u2_metric = u_to_metric(selected_preset["ref_total_u2"], "BTU")
+        st.session_state.preset_selection_prev = preset_selection
+    
     recess_fraction = st.slider("Recess Fraction", 0.0, 1.0, 0.0, 0.1,
                                 help="0.0 = no recess, 1.0 = fully recessed")
 
-# INITIALIZE ADVANCED PARAMETERS FROM PRESET
-selected_preset = PRESETS[preset_selection]
+# INITIALIZE ADVANCED PARAMETERS
 recess_effectiveness = 0.6  # DEFAULT VALUE, CAN BE OVERRIDDEN IN ADVANCED SETTINGS
-ref_u_unit = "BTU"
-ref_glass_u1 = selected_preset["ref_glass_u1"]
-ref_total_u1 = selected_preset["ref_total_u1"]
-ref_glass_u2 = selected_preset["ref_glass_u2"]
-ref_total_u2 = selected_preset["ref_total_u2"]
+
+# GET REFERENCE U-VALUES FROM SESSION STATE, CONVERTED TO CURRENT UNIT
+ref_u_unit = st.session_state.ref_u_unit
+ref_glass_u1 = u_to_btu(st.session_state.ref_glass_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u1_metric
+ref_total_u1 = u_to_btu(st.session_state.ref_total_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u1_metric
+ref_glass_u2 = u_to_btu(st.session_state.ref_glass_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u2_metric
+ref_total_u2 = u_to_btu(st.session_state.ref_total_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u2_metric
 
 # CALCULATE BUTTON
 if st.button("Calculate U-Value", type="primary"):
@@ -403,12 +467,37 @@ if st.button("Calculate U-Value", type="primary"):
 with st.expander("Advanced Settings (NFRC Reference Data)"):
     col3, col4 = st.columns(2)
     with col3:
-        ref_u_unit = st.selectbox("Reference U-Value Unit", ["BTU", "W"], index=0)
-        ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1, step=0.01)
-        ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1, step=0.01)
+        ref_u_unit = st.selectbox("Reference U-Value Unit", ["BTU", "W"], index=0 if st.session_state.ref_u_unit == "BTU" else 1)
+        
+        # UPDATE SESSION STATE WHEN UNIT CHANGES
+        st.session_state.ref_u_unit = ref_u_unit
+        if ref_u_unit != st.session_state.ref_u_unit_prev:
+            st.session_state.ref_u_unit_prev = ref_u_unit
+        
+        # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
+        ref_glass_u1_display = u_to_btu(st.session_state.ref_glass_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u1_metric
+        ref_total_u1_display = u_to_btu(st.session_state.ref_total_u1_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u1_metric
+        
+        ref_glass_u1 = st.number_input("Reference Glass U1", value=ref_glass_u1_display, step=0.01, key="ref_glass_u1_input")
+        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+        st.session_state.ref_glass_u1_metric = u_to_metric(ref_glass_u1, ref_u_unit)
+        
+        ref_total_u1 = st.number_input("Reference Total U1", value=ref_total_u1_display, step=0.01, key="ref_total_u1_input")
+        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+        st.session_state.ref_total_u1_metric = u_to_metric(ref_total_u1, ref_u_unit)
+        
     with col4:
-        ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2, step=0.01)
-        ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2, step=0.01)
+        # CONVERT STORED VALUES TO CURRENT UNIT FOR DISPLAY
+        ref_glass_u2_display = u_to_btu(st.session_state.ref_glass_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_glass_u2_metric
+        ref_total_u2_display = u_to_btu(st.session_state.ref_total_u2_metric) if ref_u_unit == "BTU" else st.session_state.ref_total_u2_metric
+        
+        ref_glass_u2 = st.number_input("Reference Glass U2", value=ref_glass_u2_display, step=0.01, key="ref_glass_u2_input")
+        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+        st.session_state.ref_glass_u2_metric = u_to_metric(ref_glass_u2, ref_u_unit)
+        
+        ref_total_u2 = st.number_input("Reference Total U2", value=ref_total_u2_display, step=0.01, key="ref_total_u2_input")
+        # UPDATE STORED VALUE WHEN USER CHANGES INPUT
+        st.session_state.ref_total_u2_metric = u_to_metric(ref_total_u2, ref_u_unit)
     
     st.markdown("---")
     recess_effectiveness = st.slider("Recess Effectiveness", 0.0, 1.0, recess_effectiveness, 0.1,
