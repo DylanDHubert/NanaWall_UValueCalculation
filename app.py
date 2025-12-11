@@ -261,6 +261,22 @@ def estimate_u_value(
     }
 
 
+# PRESETS FOR REFERENCE GLASS U-VALUES
+PRESETS = {
+    "Cero2": {
+        "ref_glass_u1": 0.25,
+        "ref_total_u1": 0.41,
+        "ref_glass_u2": 0.30,
+        "ref_total_u2": 0.48,
+    },
+    "Cero3": {
+        "ref_glass_u1": 0.12,
+        "ref_total_u1": 0.29,
+        "ref_glass_u2": 0.15,
+        "ref_total_u2": 0.31,
+    },
+}
+
 # STREAMLIT UI
 st.set_page_config(page_title="NanaWall U-Value Estimator", layout="wide")
 
@@ -305,51 +321,30 @@ with col1:
     width_per_panel_mm = length_to_mm(width_per_panel, size_unit)
     max_per_panel_width_mm = 3000.0  # 3M = 10FT
     if width_per_panel_mm > max_per_panel_width_mm:
-        max_per_panel_display = mm_to_length(max_per_panel_width_mm, size_unit)
         st.warning(
-            f"⚠️ Per-panel width ({width_per_panel:.2f} {size_unit}) exceeds maximum "
-            f"recommended width of {max_per_panel_display:.2f} {size_unit} (3m / 10ft)"
+            f"WARNING: Per-panel width ({width_per_panel:.2f} {size_unit}) exceeds maximum recommended width (3m / ~10ft)"
         )
     
     if panels > 2:
         scale_factor = 2.0 / panels
         scaled_width = width * scale_factor
-        st.info(f"⚠️ Multi-panel system: Scaling width to 2-panel equivalent\n"
-                f"Scaled width: {scaled_width:.2f} {size_unit} (height unchanged: {height:.2f} {size_unit})")
+        st.info(f"INFO: Scaling width to 2-panel equivalent of {scaled_width:.2f} {size_unit}")
 
 with col2:
     st.header("Glass Properties")
     glass_u_unit = st.selectbox("Glass U-Value Unit", ["BTU", "W"], index=0)
     glass_u = st.number_input("Glass U-Value (Center-of-Glass)", min_value=0.01, value=0.30, step=0.01)
     
-    st.header("Frame Recess")
+    # PRESET SELECTOR (REPLACES FRAME RECESS HEADER)
+    preset_selection = st.selectbox(
+        "Preset Configuration",
+        options=list(PRESETS.keys()),
+        index=0,
+        help="Select a preset for reference glass U-values."
+    )
+    
     recess_fraction = st.slider("Recess Fraction", 0.0, 1.0, 0.0, 0.1,
                                 help="0.0 = no recess, 1.0 = fully recessed")
-
-# PRESETS FOR REFERENCE GLASS U-VALUES
-PRESETS = {
-    "Cero2": {
-        "ref_glass_u1": 0.25,
-        "ref_total_u1": 0.41,
-        "ref_glass_u2": 0.30,
-        "ref_total_u2": 0.46,
-    },
-    "Cero3": {
-        "ref_glass_u1": 0.25,  # PLACEHOLDER - TO BE UPDATED
-        "ref_total_u1": 0.41,  # PLACEHOLDER - TO BE UPDATED
-        "ref_glass_u2": 0.30,  # PLACEHOLDER - TO BE UPDATED
-        "ref_total_u2": 0.46,  # PLACEHOLDER - TO BE UPDATED
-    },
-}
-
-# PRESET SELECTOR
-st.markdown("---")
-preset_selection = st.selectbox(
-    "Preset Configuration",
-    options=list(PRESETS.keys()),
-    index=0,
-    help="Select a preset for reference glass U-values. Cero3 values are placeholders and will be updated."
-)
 
 # INITIALIZE ADVANCED PARAMETERS FROM PRESET
 selected_preset = PRESETS[preset_selection]
